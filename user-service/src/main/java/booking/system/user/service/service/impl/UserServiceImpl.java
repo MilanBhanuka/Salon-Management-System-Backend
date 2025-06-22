@@ -2,7 +2,9 @@ package booking.system.user.service.service.impl;
 
 import booking.system.user.service.exception.UserException;
 import booking.system.user.service.modal.User;
+import booking.system.user.service.payload.dto.KeycloakUserDTO;
 import booking.system.user.service.repository.UserRepository;
+import booking.system.user.service.service.KeycloakService;
 import booking.system.user.service.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -14,6 +16,7 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
+    private final KeycloakService keycloakService;
 
     @Override
     public User createUser(User user) {
@@ -57,5 +60,11 @@ public class UserServiceImpl implements UserService {
         existingUser.setUserName(user.getUserName());
 
         return userRepository.save(existingUser);
+    }
+
+    @Override
+    public User getUserFromJwt(String jwt) throws Exception {
+        KeycloakUserDTO keycloakUserDTO = keycloakService.fetchUserProfileByJwt(jwt);
+        return userRepository.findByEmail(keycloakUserDTO.getEmail());
     }
 }

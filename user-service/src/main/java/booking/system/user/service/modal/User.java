@@ -1,9 +1,7 @@
 package booking.system.user.service.modal;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import booking.system.user.service.domain.UserRole;
+import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
@@ -36,8 +34,8 @@ public class User {
 
     private String phone;
 
-    @NotBlank(message = "Role is mandatory")
-    private String role;
+    @Column(nullable = false)
+    private UserRole role;
 
     @CreationTimestamp
     private LocalDateTime createdAt;
