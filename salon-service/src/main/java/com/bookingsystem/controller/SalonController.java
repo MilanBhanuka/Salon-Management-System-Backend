@@ -31,7 +31,7 @@ public class SalonController {
     }
 
     // http://localhost:5002/api/salons/52
-    @PatchMapping("/{id}")
+    @PutMapping("/{id}")
     public ResponseEntity<SalonDTO> updateSalon(
             @PathVariable("id") Long salonId,
             @RequestBody SalonDTO salonDTO) throws Exception {
