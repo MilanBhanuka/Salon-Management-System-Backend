@@ -1,4 +1,4 @@
-package booking.system.payload.response;
+package booking.system.dto;
 
 import lombok.Data;
 

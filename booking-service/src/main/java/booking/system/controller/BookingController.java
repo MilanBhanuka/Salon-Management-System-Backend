@@ -1,11 +1,16 @@
 package booking.system.controller;
 
 import booking.system.domain.BookingStatus;
+import booking.system.domain.PaymentMethod;
 import booking.system.dto.*;
 import booking.system.mapper.BookingMapper;
 import booking.system.modal.Booking;
 import booking.system.modal.SalonReport;
 import booking.system.service.BookingService;
+import booking.system.service.client.PaymentFeignClient;
+import booking.system.service.client.SalonFeignClient;
+import booking.system.service.client.ServiceOfferingFeignClient;
+import booking.system.service.client.UserFeignClient;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -22,50 +27,92 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class BookingController {
     private final BookingService bookingService;
+    private final SalonFeignClient salonFeignClient;
+    private final UserFeignClient userFeignClient;
+    private final ServiceOfferingFeignClient serviceOfferingFeignClient;
+    private final PaymentFeignClient paymentFeignClient;
 
     @PostMapping
-    public ResponseEntity<Booking> createBooking(
+    public ResponseEntity<PaymentLinkResponse> createBooking(
             @RequestParam Long salonId,
-            @RequestBody BookingRequest bookingRequest
+            @RequestParam PaymentMethod paymentMethod,
+            @RequestBody BookingRequest bookingRequest,
+            @RequestHeader("Authorization") String jwt
             ) throws Exception {
-        UserDTO user = new UserDTO();
-        user.setId(1L);
+        if (!jwt.startsWith("Bearer ")) {
+            throw new Exception("Invalid token format. Token must start with 'Bearer '");
+        }
 
-        SalonDTO salon = new SalonDTO();
-        salon.setId(salonId);
+
+
+//        UserDTO user = userFeignClient.getUserProfile(jwt).getBody();
+//        if(user == null){
+//            throw new Exception("User not found from JWT");
+//        }else{
+//            if(user.getId() == null){
+//                throw new Exception("User ID is null"+user);
+//            }
+//        }
+        ResponseEntity<UserDTO> userResponse = userFeignClient.getUserProfile(jwt);
+        if (userResponse == null || userResponse.getBody() == null) {
+            throw new Exception("Failed to fetch user profile");
+        }
+
+        UserDTO user = userResponse.getBody();
+        if (user.getId() == null) {
+            throw new Exception("User ID is missing from the profile. User: " + user);
+        }
+
+
+//        SalonDTO salon = salonFeignClient.getSalonById(salonId).getBody();
+//        if(salon == null ){
+//            throw new Exception("Salon not found with ID: " + salonId);
+//        }
+
+        ResponseEntity<SalonDTO> salonResponse = salonFeignClient.getSalonById(salonId);
+        if (salonResponse == null || salonResponse.getBody() == null) {
+            throw new Exception("Salon not found with ID: " + salonId);
+        }
+        SalonDTO salon = salonResponse.getBody();
+
+
 //        salon.setOpenTime(LocalTime.now());
 //        salon.setCloseTime(LocalTime.now().plusHours(12));
-        salon.setOpenTime(LocalTime.of(9, 0)); // 9:00 AM
-        salon.setCloseTime(LocalTime.of(21, 0)); // 9:00 PM
+//        salon.setOpenTime(LocalTime.of(9, 0)); // 9:00 AM
+//        salon.setCloseTime(LocalTime.of(21, 0)); // 9:00 PM
 
-        Set<ServiceDTO> serviceDTOSet = new HashSet<>();
+        Set<ServiceDTO> serviceDTOSet = serviceOfferingFeignClient.getServicesBySalonIds(bookingRequest.getServiceIds()).getBody();
 
-        ServiceDTO serviceDTO = new ServiceDTO();
-        serviceDTO.setId(1L);
-        serviceDTO.setPrice(399);
-        serviceDTO.setDuration(45);
-        serviceDTO.setName("Hair cut");
-
-        serviceDTOSet.add(serviceDTO);
+        if(serviceDTOSet.isEmpty()){
+            throw new Exception("No services found for the given service IDs");
+        }
 
         Booking booking = bookingService.createBooking(bookingRequest,user,salon,serviceDTOSet);
+        BookingDTO bookingDTO = BookingMapper.toDTO(booking);
 
-        return ResponseEntity.ok(booking);
+        PaymentLinkResponse res = paymentFeignClient.createPaymentLink(bookingDTO,paymentMethod,jwt).getBody();
+
+        return ResponseEntity.ok(res);
     }
 
     @GetMapping("/customer")
-    public ResponseEntity<Set<BookingDTO>> getBookingsByCustomer(){
-        UserDTO user= new UserDTO();
-        user.setId(1L);
-
-        List<Booking> bookings = bookingService.getBookingsByCustomer(1L);
-
+    public ResponseEntity<Set<BookingDTO>> getBookingsByCustomer(
+            @RequestHeader("Authorization") String jwt
+    ) throws Exception {
+        UserDTO user = userFeignClient.getUserProfile(jwt).getBody();
+        if(user == null){
+            throw new Exception("User not found from JWT");
+        }
+        List<Booking> bookings = bookingService.getBookingsByCustomer(user.getId());
         return ResponseEntity.ok(getBookingDTOs(bookings));
     }
 
     @GetMapping("/salon")
-    public ResponseEntity<Set<BookingDTO>> getBookingsBySalon(){
-        List<Booking> bookings = bookingService.getBookingsBySalon(1L);
+    public ResponseEntity<Set<BookingDTO>> getBookingsBySalon(
+            @RequestHeader("Authorization") String jwt
+    ) throws Exception {
+        SalonDTO salonDTO =salonFeignClient.getSalonByOwnerId(jwt).getBody();
+        List<Booking> bookings = bookingService.getBookingsBySalon(salonDTO.getId());
 
         return ResponseEntity.ok(getBookingDTOs(bookings));
     }
@@ -114,8 +161,11 @@ public class BookingController {
     }
 
     @GetMapping("/report")
-    public ResponseEntity <SalonReport> getSalonReport() throws Exception {
-        SalonReport report = bookingService.getSalonReport(1L);
+    public ResponseEntity <SalonReport> getSalonReport(
+            @RequestHeader("Authorization") String jwt
+    ) throws Exception {
+        SalonDTO salonDTO =salonFeignClient.getSalonByOwnerId(jwt).getBody();
+        SalonReport report = bookingService.getSalonReport(salonDTO.getId());
 
         return ResponseEntity.ok(report);
     }

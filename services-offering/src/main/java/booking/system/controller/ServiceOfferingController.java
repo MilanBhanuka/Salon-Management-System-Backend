@@ -30,9 +30,9 @@ public class ServiceOfferingController {
         return ResponseEntity.ok(serviceOfferings);
     }
 
-//    @GetMapping("/salon/{ids}")
-//    public ResponseEntity<Set<ServiceOffering>> getServicesBySalonIds(@PathVariable Set<Long> ids){
-//        Set<ServiceOffering> serviceOfferings = serviceOfferingService.getServicesByIds(ids);
-//        return ResponseEntity.ok(serviceOfferings);
-//    }
+    @GetMapping("/list/{ids}")
+    public ResponseEntity<Set<ServiceOffering>> getServicesBySalonIds(@PathVariable Set<Long> ids){
+        Set<ServiceOffering> serviceOfferings = serviceOfferingService.getServicesByIds(ids);
+        return ResponseEntity.ok(serviceOfferings);
+    }
 }
