@@ -16,7 +16,6 @@ import com.stripe.exception.StripeException;
 import com.stripe.model.checkout.Session;
 import com.stripe.param.checkout.SessionCreateParams;
 import lombok.RequiredArgsConstructor;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -36,7 +35,7 @@ public class PaymentServiceImpl implements PaymentService {
     @Override
     public PaymentLinkResponse createOrder(UserDTO user,
                                            BookingDTO booking,
-                                           PaymentMethod paymentMethod) throws StripeException {
+                                           PaymentMethod paymentMethod) throws Exception {
         Long amount = (long) booking.getTotalPrice();
 
         PaymentOrder order = new PaymentOrder();
@@ -55,9 +54,10 @@ public class PaymentServiceImpl implements PaymentService {
                     savedOrder.getId());
 
             paymentLinkResponse.setPayment_link_url(paymentUrl);
-
+            paymentLinkResponse.setPayment_link_id(savedOrder.getPaymentLinkId());
         }
         return paymentLinkResponse;
+
     }
 
     @Override
@@ -74,13 +74,9 @@ public class PaymentServiceImpl implements PaymentService {
         return paymentOrderRepository.findByPaymentLinkId(paymentId);
     }
 
-//    @Override
-//    public PaymentLink createRazorpayPaymentLink(UserDTO user, Long amount, Long orderId) {
-//        return null;
-//    }
 
     @Override
-    public String createStripePaymentLink(UserDTO user, Long amount, Long orderId) throws StripeException {
+    public String createStripePaymentLink(UserDTO user, Long amount, Long orderId) throws Exception {
         Stripe.apiKey = stripeSecretKay;
 
         SessionCreateParams params = SessionCreateParams.builder()
@@ -100,7 +96,14 @@ public class PaymentServiceImpl implements PaymentService {
                 ).build();
 
         Session session = Session.create(params);
+        PaymentOrder order = paymentOrderRepository.findById(orderId)
+                .orElseThrow(() -> new Exception("Payment order not found"));
+        order.setPaymentLinkId(session.getId());
+        paymentOrderRepository.save(order);
+
         return session.getUrl();
+
+
     }
 
     @Override
