@@ -32,7 +32,7 @@ public class SecurityConfig {
                                 "/api/categories/**",
                                 "/api/bookings/**",
                                 "/api/notifications/**",
-                                "/api/payments/**",
+                                "/api/payment/**",
                                 "/api/service-offering/**",
                                 "/api/users/**",
                                 "/api/reviews/**").hasAnyRole("CUSTOMER","SALON_OWNER","ADMIN")

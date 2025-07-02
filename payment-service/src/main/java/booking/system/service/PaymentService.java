@@ -11,7 +11,7 @@ import com.stripe.exception.StripeException;
 public interface PaymentService {
     PaymentLinkResponse createOrder(UserDTO user,
                                     BookingDTO booking,
-                                    PaymentMethod paymentMethod) throws StripeException;
+                                    PaymentMethod paymentMethod) throws Exception;
 
     PaymentOrder getPaymentOrderById(Long id) throws Exception;
 
@@ -23,7 +23,7 @@ public interface PaymentService {
 
     String createStripePaymentLink(UserDTO user,
                                    Long amount,
-                                   Long orderId) throws StripeException;
+                                   Long orderId) throws Exception;
 
     Boolean proceedPayment(PaymentOrder paymentOrder,String paymentId,String paymentLinkId);
 }

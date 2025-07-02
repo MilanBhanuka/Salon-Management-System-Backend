@@ -2,6 +2,8 @@ package booking.system.service.impl;
 
 import booking.system.domain.PaymentMethod;
 import booking.system.domain.PaymentOrderStatus;
+import booking.system.messaging.BookingEventProducer;
+import booking.system.messaging.NotificationEventProducer;
 import booking.system.modal.PaymentOrder;
 import booking.system.payload.dto.BookingDTO;
 import booking.system.payload.dto.UserDTO;
@@ -22,6 +24,8 @@ import org.springframework.stereotype.Service;
 public class PaymentServiceImpl implements PaymentService {
 
     private final PaymentOrderRepository paymentOrderRepository;
+    private final BookingEventProducer bookingEventProducer;
+    private final NotificationEventProducer notificationEventProducer;
 
     @Value("${stripe.api.key}")
     private String stripeSecretKay;
@@ -31,7 +35,7 @@ public class PaymentServiceImpl implements PaymentService {
     @Override
     public PaymentLinkResponse createOrder(UserDTO user,
                                            BookingDTO booking,
-                                           PaymentMethod paymentMethod) throws StripeException {
+                                           PaymentMethod paymentMethod) throws Exception {
         Long amount = (long) booking.getTotalPrice();
 
         PaymentOrder order = new PaymentOrder();
@@ -50,8 +54,10 @@ public class PaymentServiceImpl implements PaymentService {
                     savedOrder.getId());
 
             paymentLinkResponse.setPayment_link_url(paymentUrl);
+            paymentLinkResponse.setPayment_link_id(savedOrder.getPaymentLinkId());
         }
         return paymentLinkResponse;
+
     }
 
     @Override
@@ -68,13 +74,9 @@ public class PaymentServiceImpl implements PaymentService {
         return paymentOrderRepository.findByPaymentLinkId(paymentId);
     }
 
-//    @Override
-//    public PaymentLink createRazorpayPaymentLink(UserDTO user, Long amount, Long orderId) {
-//        return null;
-//    }
 
     @Override
-    public String createStripePaymentLink(UserDTO user, Long amount, Long orderId) throws StripeException {
+    public String createStripePaymentLink(UserDTO user, Long amount, Long orderId) throws Exception {
         Stripe.apiKey = stripeSecretKay;
 
         SessionCreateParams params = SessionCreateParams.builder()
@@ -94,7 +96,14 @@ public class PaymentServiceImpl implements PaymentService {
                 ).build();
 
         Session session = Session.create(params);
+        PaymentOrder order = paymentOrderRepository.findById(orderId)
+                .orElseThrow(() -> new Exception("Payment order not found"));
+        order.setPaymentLinkId(session.getId());
+        paymentOrderRepository.save(order);
+
         return session.getUrl();
+
+
     }
 
     @Override
@@ -103,6 +112,13 @@ public class PaymentServiceImpl implements PaymentService {
                                   String paymentLinkId) {
         if(paymentOrder.getStatus().equals(PaymentOrderStatus.PENDING)){
             if(paymentOrder.getPaymentMethod().equals(PaymentMethod.STRIPE)){
+                bookingEventProducer.sentBookingUpdateEvent(paymentOrder);
+                notificationEventProducer.sentNotification(
+                        paymentOrder.getBookingId(),
+                        paymentOrder.getUserID(),
+                        paymentOrder.getSalonId()
+                );
+
                 paymentOrder.setStatus(PaymentOrderStatus.SUCCESS);
                 paymentOrderRepository.save(paymentOrder);
                 return true;
