@@ -2,6 +2,8 @@ package booking.system.service.impl;
 
 import booking.system.domain.PaymentMethod;
 import booking.system.domain.PaymentOrderStatus;
+import booking.system.messaging.BookingEventProducer;
+import booking.system.messaging.NotificationEventProducer;
 import booking.system.modal.PaymentOrder;
 import booking.system.payload.dto.BookingDTO;
 import booking.system.payload.dto.UserDTO;
@@ -14,6 +16,7 @@ import com.stripe.exception.StripeException;
 import com.stripe.model.checkout.Session;
 import com.stripe.param.checkout.SessionCreateParams;
 import lombok.RequiredArgsConstructor;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -22,6 +25,8 @@ import org.springframework.stereotype.Service;
 public class PaymentServiceImpl implements PaymentService {
 
     private final PaymentOrderRepository paymentOrderRepository;
+    private final BookingEventProducer bookingEventProducer;
+    private final NotificationEventProducer notificationEventProducer;
 
     @Value("${stripe.api.key}")
     private String stripeSecretKay;
@@ -50,6 +55,7 @@ public class PaymentServiceImpl implements PaymentService {
                     savedOrder.getId());
 
             paymentLinkResponse.setPayment_link_url(paymentUrl);
+
         }
         return paymentLinkResponse;
     }
@@ -103,6 +109,13 @@ public class PaymentServiceImpl implements PaymentService {
                                   String paymentLinkId) {
         if(paymentOrder.getStatus().equals(PaymentOrderStatus.PENDING)){
             if(paymentOrder.getPaymentMethod().equals(PaymentMethod.STRIPE)){
+                bookingEventProducer.sentBookingUpdateEvent(paymentOrder);
+                notificationEventProducer.sentNotification(
+                        paymentOrder.getBookingId(),
+                        paymentOrder.getUserID(),
+                        paymentOrder.getSalonId()
+                );
+
                 paymentOrder.setStatus(PaymentOrderStatus.SUCCESS);
                 paymentOrderRepository.save(paymentOrder);
                 return true;

@@ -6,6 +6,7 @@ import booking.system.dto.SalonDTO;
 import booking.system.dto.ServiceDTO;
 import booking.system.dto.UserDTO;
 import booking.system.modal.Booking;
+import booking.system.modal.PaymentOrder;
 import booking.system.modal.SalonReport;
 import booking.system.repository.BookingRepository;
 import booking.system.service.BookingService;
@@ -149,5 +150,12 @@ public class BookingServiceImpl implements BookingService {
         report.setTotalEarnings(totalEarnings);
         report.setTotalRefund(totalRefund);
         return null;
+    }
+
+    @Override
+    public Booking bookingSuccess(PaymentOrder order) throws Exception {
+        Booking existingBooking = getBookingById(order.getBookingId());
+        existingBooking.setStatus(BookingStatus.CONFIRMED);
+        return bookingRepository.save(existingBooking);
     }
 }

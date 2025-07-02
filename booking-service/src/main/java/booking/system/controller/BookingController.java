@@ -75,12 +75,6 @@ public class BookingController {
         }
         SalonDTO salon = salonResponse.getBody();
 
-
-//        salon.setOpenTime(LocalTime.now());
-//        salon.setCloseTime(LocalTime.now().plusHours(12));
-//        salon.setOpenTime(LocalTime.of(9, 0)); // 9:00 AM
-//        salon.setCloseTime(LocalTime.of(21, 0)); // 9:00 PM
-
         Set<ServiceDTO> serviceDTOSet = serviceOfferingFeignClient.getServicesBySalonIds(bookingRequest.getServiceIds()).getBody();
 
         if(serviceDTOSet.isEmpty()){
