@@ -1,10 +1,8 @@
 package booking.system.review_service.controller;
 
+import booking.system.review_service.mapper.ReviewMapper;
 import booking.system.review_service.modal.Review;
-import booking.system.review_service.payload.dto.ApiResponse;
-import booking.system.review_service.payload.dto.ReviewRequest;
-import booking.system.review_service.payload.dto.SalonDTO;
-import booking.system.review_service.payload.dto.UserDTO;
+import booking.system.review_service.payload.dto.*;
 import booking.system.review_service.service.ReviewService;
 import booking.system.review_service.service.client.SalonFeignClient;
 import booking.system.review_service.service.client.UserFeignClient;
@@ -38,7 +36,7 @@ public class ReviewController {
     }
 
     @GetMapping("/salon/{salonId}")
-    public ResponseEntity<List<Review>> getReviews(
+    public ResponseEntity<List<ReviewDTO>> getReviews(
             @PathVariable Long salonId,
             @RequestHeader("Authorization") String jwt
     ) throws Exception {
@@ -46,7 +44,18 @@ public class ReviewController {
 
         List<Review> reviews = reviewService.getReviewsBySalonId(salon.getId());
 
-        return ResponseEntity.ok(reviews);
+        List<ReviewDTO> reviewDTOs = reviews.stream().map((review -> {
+            UserDTO user = null;
+            try {
+                user = userFeignClient.getUserById(review.getUserId()).getBody();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+
+            return ReviewMapper.toDTO(review, user);
+
+        })).toList();
+        return ResponseEntity.ok(reviewDTOs);
     }
 
     @PutMapping("/{reviewId}")
