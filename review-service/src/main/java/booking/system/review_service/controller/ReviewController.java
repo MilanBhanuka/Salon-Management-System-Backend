@@ -19,8 +19,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ReviewController {
     private final ReviewService reviewService;
-    private UserFeignClient userFeignClient;
-    private SalonFeignClient salonFeignClient;
+    private final UserFeignClient userFeignClient;
+    private final SalonFeignClient salonFeignClient;
 
 
     @PostMapping("/salon/{salonId}")
@@ -38,7 +38,7 @@ public class ReviewController {
     }
 
     @GetMapping("/salon/{salonId}")
-    public ResponseEntity<List<Review>> createReview(
+    public ResponseEntity<List<Review>> getReviews(
             @PathVariable Long salonId,
             @RequestHeader("Authorization") String jwt
     ) throws Exception {

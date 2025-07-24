@@ -2,6 +2,7 @@ package booking.system.review_service.modal;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import org.hibernate.annotations.CreationTimestamp;
 import org.springframework.data.annotation.CreatedDate;
 
 import java.time.LocalDateTime;
@@ -25,6 +26,6 @@ public class Review {
     @Column(nullable = false)
     private Long userId;
 
-    @CreatedDate
+    @CreationTimestamp
     private LocalDateTime createdAt;
 }
