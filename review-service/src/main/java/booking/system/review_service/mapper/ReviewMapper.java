@@ -11,7 +11,7 @@ public class ReviewMapper {
         reviewDTO.setReviewText(review.getReviewText());
         reviewDTO.setUser(user);
         reviewDTO.setRating(review.getRating());
-        reviewDTO.setCratedAt(review.getCreatedAt());
+        reviewDTO.setCreatedAt(review.getCreatedAt());
 
         return reviewDTO;
     }
