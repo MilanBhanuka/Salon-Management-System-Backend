@@ -12,5 +12,5 @@ public class ReviewDTO {
     private SalonDTO salon;
     private String reviewText;
     private double rating;
-    private LocalDateTime cratedAt;
+    private LocalDateTime createdAt;
 }

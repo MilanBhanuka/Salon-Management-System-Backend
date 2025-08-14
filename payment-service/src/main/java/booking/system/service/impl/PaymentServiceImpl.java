@@ -87,7 +87,7 @@ public class PaymentServiceImpl implements PaymentService {
                 .addLineItem(SessionCreateParams.LineItem.builder()
                         .setQuantity(1L)
                         .setPriceData(SessionCreateParams.LineItem.PriceData.builder()
-                                .setCurrency("usd")
+                                .setCurrency("LKR")
                                 .setUnitAmount(amount*100)
                                 .setProductData(SessionCreateParams.LineItem.PriceData.ProductData.builder()
                                         .setName("Salon Appointment Booking").build()

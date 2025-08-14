@@ -43,16 +43,6 @@ public class BookingController {
             throw new Exception("Invalid token format. Token must start with 'Bearer '");
         }
 
-
-
-//        UserDTO user = userFeignClient.getUserProfile(jwt).getBody();
-//        if(user == null){
-//            throw new Exception("User not found from JWT");
-//        }else{
-//            if(user.getId() == null){
-//                throw new Exception("User ID is null"+user);
-//            }
-//        }
         ResponseEntity<UserDTO> userResponse = userFeignClient.getUserProfile(jwt);
         if (userResponse == null || userResponse.getBody() == null) {
             throw new Exception("Failed to fetch user profile");
@@ -63,18 +53,11 @@ public class BookingController {
             throw new Exception("User ID is missing from the profile. User: " + user);
         }
 
-
-//        SalonDTO salon = salonFeignClient.getSalonById(salonId).getBody();
-//        if(salon == null ){
-//            throw new Exception("Salon not found with ID: " + salonId);
-//        }
-
         ResponseEntity<SalonDTO> salonResponse = salonFeignClient.getSalonById(salonId);
         if (salonResponse == null || salonResponse.getBody() == null) {
             throw new Exception("Salon not found with ID: " + salonId);
         }
         SalonDTO salon = salonResponse.getBody();
-
         Set<ServiceDTO> serviceDTOSet = serviceOfferingFeignClient.getServicesBySalonIds(bookingRequest.getServiceIds()).getBody();
 
         if(serviceDTOSet.isEmpty()){
@@ -82,7 +65,10 @@ public class BookingController {
         }
 
         Booking booking = bookingService.createBooking(bookingRequest,user,salon,serviceDTOSet);
-        BookingDTO bookingDTO = BookingMapper.toDTO(booking);
+        Set<ServiceDTO> services = serviceOfferingFeignClient.getServicesBySalonIds(booking.getServiceIds()).getBody();
+        UserDTO customer = userFeignClient.getUserById(booking.getCustomerId()).getBody();
+
+        BookingDTO bookingDTO = BookingMapper.toDTO(booking, services, salon, customer);
 
         PaymentLinkResponse res = paymentFeignClient.createPaymentLink(bookingDTO,paymentMethod,jwt).getBody();
 
@@ -113,7 +99,16 @@ public class BookingController {
 
     private Set<BookingDTO> getBookingDTOs(List<Booking> bookings){
         return bookings.stream().map(booking -> {
-            return BookingMapper.toDTO(booking);
+            Set<ServiceDTO> services = serviceOfferingFeignClient.getServicesBySalonIds(booking.getServiceIds()).getBody();
+            SalonDTO salon;
+            UserDTO user;
+            try {
+                salon = salonFeignClient.getSalonById(booking.getSalonId()).getBody();
+                user = userFeignClient.getUserById(booking.getCustomerId()).getBody();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+            return BookingMapper.toDTO(booking, services,salon, user);
         }).collect(Collectors.toSet());
     }
 
@@ -122,8 +117,11 @@ public class BookingController {
             @PathVariable Long bookingId
     ) throws Exception {
         Booking booking = bookingService.getBookingById(bookingId);
+        Set<ServiceDTO> services = serviceOfferingFeignClient.getServicesBySalonIds(booking.getServiceIds()).getBody();
+        UserDTO customer = userFeignClient.getUserById(booking.getCustomerId()).getBody();
+        SalonDTO salon = salonFeignClient.getSalonById(booking.getSalonId()).getBody();
 
-        return ResponseEntity.ok(BookingMapper.toDTO(booking));
+        return ResponseEntity.ok(BookingMapper.toDTO(booking,services,salon, customer));
     }
 
     @PutMapping("/{bookingId}/status")
@@ -132,8 +130,10 @@ public class BookingController {
             @RequestParam BookingStatus status
             ) throws Exception {
         Booking booking = bookingService.updateBooking(bookingId,status);
-
-        return ResponseEntity.ok(BookingMapper.toDTO(booking));
+        Set<ServiceDTO> services = serviceOfferingFeignClient.getServicesBySalonIds(booking.getServiceIds()).getBody();
+        UserDTO customer = userFeignClient.getUserById(booking.getCustomerId()).getBody();
+        SalonDTO salon = salonFeignClient.getSalonById(booking.getSalonId()).getBody();
+        return ResponseEntity.ok(BookingMapper.toDTO(booking, services, salon, customer));
     }
 
     @GetMapping("/slot/salon/{salonId}/date/{date}")
