@@ -35,12 +35,22 @@ public class SalonServiceOfferingController {
         return ResponseEntity.ok(serviceOfferings);
     }
 
-    @PostMapping("/{id}")
+    @PutMapping("/{id}")
     public ResponseEntity <ServiceOffering> updateService(
            @PathVariable Long id,
            @RequestBody ServiceOffering serviceOffering
     ) throws Exception {
         ServiceOffering serviceOfferings = serviceOfferingService.updateService(id, serviceOffering);
         return ResponseEntity.ok(serviceOfferings);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<String> deleteService(
+            @PathVariable Long id,
+            @RequestHeader("Authorization") String jwt
+    ) throws Exception {
+        SalonDTO salonDTO = salonFeignClient.getSalonByOwnerId(jwt).getBody();
+        serviceOfferingService.deleteService(id, salonDTO.getId());
+        return ResponseEntity.ok("Service offering deleted successfully");
     }
 }
