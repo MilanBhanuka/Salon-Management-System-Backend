@@ -47,4 +47,15 @@ public class SalonCategoryController {
         Category category = categoryService.findByIdAndSalonId(id,salonId);
         return ResponseEntity.ok(category);
     }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<Category> updateCategory(
+            @PathVariable Long id,
+            @RequestBody Category category,
+            @RequestHeader("Authorization") String jwt
+    ) throws Exception {
+        SalonDTO salonDTO = salonFeignClient.getSalonByOwnerId(jwt).getBody();
+        Category updatedCategory = categoryService.updateCategory(id, category, salonDTO);
+        return ResponseEntity.ok(updatedCategory);
+    }
 }

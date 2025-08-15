@@ -56,4 +56,16 @@ public class CategoryServiceImpl implements CategoryService {
         }
         return category;
     }
+
+    @Override
+    public Category updateCategory(Long id, Category category, SalonDTO salonDTO) throws Exception {
+        Category existingCategory = categoryRepository.findById(id).orElse(null);
+        if (existingCategory == null || !existingCategory.getSalonId().equals(salonDTO.getId())) {
+            throw new Exception("Category not found or unauthorized");
+        }
+        existingCategory.setName(category.getName());
+        existingCategory.setImage(category.getImage());
+        // Add other fields to update as needed
+        return categoryRepository.save(existingCategory);
+    }
 }
