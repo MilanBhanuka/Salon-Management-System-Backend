@@ -21,4 +21,6 @@ public interface ServiceOfferingService {
     Set<ServiceOffering> getServicesByIds(Set<Long> ids);
 
     ServiceOffering getServiceById(long id) throws Exception;
+
+    void deleteService(Long id, Long salonId) throws Exception;
 }

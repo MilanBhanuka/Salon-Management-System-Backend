@@ -75,4 +75,13 @@ public class ServiceOfferingServiceImpl implements ServiceOfferingService {
         }
         return serviceOffering;
     }
+
+    @Override
+    public void deleteService(Long id, Long salonId) throws Exception {
+        ServiceOffering serviceOffering = serviceOfferingRepository.findByIdAndSalonId(id, salonId).orElse(null);
+        if (serviceOffering == null) {
+            throw new Exception("Service offering not found or unauthorized");
+        }
+        serviceOfferingRepository.deleteById(id);
+    }
 }
